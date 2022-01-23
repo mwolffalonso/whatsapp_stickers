@@ -73,12 +73,19 @@ public class ConfigFileManager {
 
     static boolean addNewPack(Context context, StickerPack stickerPack) throws JSONException, InvalidPackException {
         List<StickerPack> stickerPacks = new ArrayList<StickerPack>();
+		boolean existe = false;
         for(StickerPack s: getStickerPacks(context)){
             if(!s.identifier.equals(stickerPack.identifier)){
                 stickerPacks.add(s);
-            }
+            }else{
+				stickerPacks.add(s);
+				existe = true;
+			}
         }
-        stickerPacks.add(stickerPack);
+		if(!existe){
+			stickerPacks.add(stickerPack);
+		}
+        
         return updateConfigFile(context,stickerPacks);
     }
 
@@ -109,7 +116,9 @@ public class ConfigFileManager {
             obj.put("name", s.name);
             obj.put("publisher", s.publisher);
             obj.put("tray_image_file", getFileName(s.trayImageFile));
-            obj.put("image_data_version", s.imageDataVersion);
+			System.out.println("image_data_version"+String.valueOf(Integer.parseInt(s.imageDataVersion)+1));
+            obj.put("image_data_version", String.valueOf(Integer.parseInt(s.imageDataVersion)+1));
+            //obj.put("image_data_version", s.imageDataVersion);
             obj.put("avoid_cache", s.avoidCache);
             obj.put("publisher_email", s.publisherEmail);
             obj.put("publisher_website", s.publisherWebsite);
