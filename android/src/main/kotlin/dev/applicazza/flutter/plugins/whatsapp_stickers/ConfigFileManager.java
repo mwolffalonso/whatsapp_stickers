@@ -1,6 +1,7 @@
 package dev.applicazza.flutter.plugins.whatsapp_stickers;
 
 import android.content.ContentResolver;
+import android.content.ContentProviderClient;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
@@ -41,6 +42,8 @@ public class ConfigFileManager {
         }
         try (InputStream contentsInputStream = new FileInputStream(file)) {
            stickerPackList = ContentFileParser.parseStickerPacks(contentsInputStream);
+           contentsInputStream.close();
+
         } catch (IOException | IllegalStateException e) {
             throw new RuntimeException("config file has some issues: " + e.getMessage(), e);
         }
@@ -72,13 +75,39 @@ public class ConfigFileManager {
     }
 
     static boolean addNewPack(Context context, StickerPack stickerPack) throws JSONException, InvalidPackException {
+        ContentResolver resolver = context.getContentResolver();
+        ContentProviderClient client = resolver.acquireContentProviderClient("com.mtheorysoft.memes.stickercontentprovider");
+        StickerContentProvider provider = (StickerContentProvider) client.getLocalContentProvider();
+        List<StickerPack> spl = provider.getStickerPackList();
+
+        if(spl.size()>0) {
+            System.out.println("Sticker Pack " + spl.get(0).name);
+            System.out.println("Sticker Pack imageDataVersion " + spl.get(0).imageDataVersion);
+            System.out.println("Provider stickerPack size pre add " + spl.get(0).getStickers().size());
+        }
+
         List<StickerPack> stickerPacks = new ArrayList<StickerPack>();
 		boolean existe = false;
         for(StickerPack s: getStickerPacks(context)){
             if(!s.identifier.equals(stickerPack.identifier)){
                 stickerPacks.add(s);
             }else{
+				for(Sticker sticker : stickerPack.getStickers()){
+					if(!sticker.imageFileName.contains("bogus")){
+							s.getStickers().add(0,sticker);
+                            spl.get(0).getStickers().add(0,sticker);
+                            System.out.println("Provider stickerPack size post add "+spl.get(0).getStickers().size());
+                            System.out.println("Sticker Pack imageDataVersion " + spl.get(0).imageDataVersion);
+
+                    }
+				}
+				
+                for(Sticker stickerInProvider: spl.get(0).getStickers()){
+                    System.out.println("Filename "+stickerInProvider.imageFileName);
+
+                }
 				stickerPacks.add(s);
+
 				existe = true;
 			}
         }
@@ -101,6 +130,7 @@ public class ConfigFileManager {
     }
 
     static boolean updateConfigFile(Context context, List<StickerPack> stickerPacks) throws JSONException, InvalidPackException {
+
         JSONObject mObj = new JSONObject();
         if(stickerPacks.size() <= 0){
             mObj.put("android_play_store_link", "");
@@ -142,19 +172,33 @@ public class ConfigFileManager {
         }
         mObj.put("sticker_packs", _packs);
         writeConfigFile(context, mObj.toString());
+
+//        for(StickerPack sP : StickerPackLoader.fetchStickerPacks(context)){
+//            System.out.println("Sticker Pack Name "+sP.name);
+//            for(Sticker s: sP.getStickers()){
+//                System.out.println("Sticker File "+s.imageFileName);
+//            }
+//        }
         return true;
     }
 
     static void writeConfigFile(Context context, String jsonString){
         String filePath = getConfigFilePath(context);
         File f = new File(filePath);
+        FileWriter writer = null;
         try {
-            FileWriter writer = new FileWriter(f);
+            writer = new FileWriter(f);
             writer.write(jsonString);
             writer.close();
+            ContentResolver resolver = context.getContentResolver();
+            ContentProviderClient client = resolver.acquireContentProviderClient("com.mtheorysoft.memes.stickercontentprovider");
+            StickerContentProvider provider = (StickerContentProvider) client.getLocalContentProvider();
+            provider.readContentFile(context);
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     static void generateConfigFile(Context context) throws JSONException {

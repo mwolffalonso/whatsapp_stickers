@@ -76,7 +76,7 @@ public class StickerContentProvider extends ContentProvider {
 
     private static final int STICKER_PACK_TRAY_ICON_CODE = 5;
 
-    private List<StickerPack> stickerPackList;
+    public List<StickerPack> stickerPackList;
 
     @Override
     public boolean onCreate() {
@@ -155,7 +155,7 @@ public class StickerContentProvider extends ContentProvider {
         }
     }
 
-    private synchronized void readContentFile(@NonNull Context context) {
+    public synchronized void readContentFile(@NonNull Context context) {
         final File file = new File(ConfigFileManager.getConfigFilePath(context));
         try (InputStream contentsInputStream = new FileInputStream(file)) {
             stickerPackList = ContentFileParser.parseStickerPacks(contentsInputStream);
@@ -164,7 +164,7 @@ public class StickerContentProvider extends ContentProvider {
         }
     }
 
-    private List<StickerPack> getStickerPackList() {
+    public List<StickerPack> getStickerPackList() {
         if (stickerPackList == null) {
             readContentFile(Objects.requireNonNull(getContext()));
         }
