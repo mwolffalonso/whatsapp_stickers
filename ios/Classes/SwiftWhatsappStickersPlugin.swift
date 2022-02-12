@@ -73,6 +73,7 @@ public class SwiftWhatsappStickersPlugin: NSObject, FlutterPlugin {
             return
         } catch StickerPackError.imageTooBig(let imageFileSize) {
             let roundedSize = round((Double(imageFileSize) / 1024) * 100) / 100
+            print("Imagen muy grande filesize es \(imageFileSize)")
             result(FlutterError(code: "IMAGE_TOO_BIG", message: "\(trayImageFileName): \(roundedSize) KB is bigger than the max file size (\(Limits.MaxStickerFileSize / 1024) KB).", details: nil))
             return
         } catch StickerPackError.incorrectImageSize(let imageDimensions) {
@@ -94,7 +95,10 @@ public class SwiftWhatsappStickersPlugin: NSObject, FlutterPlugin {
             let filename = sticker.key
             
             do {
-                try stickerPack!.addSticker(contentsOfFile: locateFile(atPath: filename), emojis: emojis)
+                if !sticker.key.contains("bogus") {
+                    try stickerPack!.addSticker(contentsOfFile: locateFile(atPath: filename), emojis: emojis)
+                }
+                
             } catch StickerPackError.stickersNumOutsideAllowableRange {
                 result(FlutterError(code: "OUTSIDE_ALLOWABLE_RANGE", message: "Sticker count outside the allowable limit (\(Limits.MaxStickersPerPack) stickers per pack).", details: nil))
                 return
@@ -120,6 +124,49 @@ public class SwiftWhatsappStickersPlugin: NSObject, FlutterPlugin {
             } catch {
                 result(FlutterError(code: "GENERAL_ERROR", message: error.localizedDescription, details: nil))
                 return
+            }
+            
+        }
+        
+        //Si la cantidad de stickers reales es mayor a 3 saco los transparentes que son 2, por eso pongo el if de menor a 5 = 3 reales + 2 transparentes
+        if stickers.count < 5 {
+            for sticker in stickers {
+                let emojis: [String]? = sticker.value
+                
+                let filename = sticker.key
+                
+                do {
+                    if sticker.key.contains("bogus") {
+                        try stickerPack!.addSticker(contentsOfFile: locateFile(atPath: filename), emojis: emojis)
+                    }
+                    
+                } catch StickerPackError.stickersNumOutsideAllowableRange {
+                    result(FlutterError(code: "OUTSIDE_ALLOWABLE_RANGE", message: "Sticker count outside the allowable limit (\(Limits.MaxStickersPerPack) stickers per pack).", details: nil))
+                    return
+                } catch StickerPackError.fileNotFound {
+                    result(FlutterError(code: "FILE_NOT_FOUND", message: "\(filename) not found.", details: nil))
+                    return
+                } catch StickerPackError.unsupportedImageFormat(let imageFormat) {
+                    result(FlutterError(code: "UNSUPPORTED_IMAGE_FORMAT", message: "\(filename): \(imageFormat) is not a supported format.", details: nil))
+                    return
+                } catch StickerPackError.imageTooBig(let imageFileSize) {
+                    let roundedSize = round((Double(imageFileSize) / 1024) * 100) / 100;
+                    result(FlutterError(code: "IMAGE_TOO_BIG", message: "\(filename): \(roundedSize) KB is bigger than the max file size (\(Limits.MaxStickerFileSize / 1024) KB).", details: nil))
+                    return
+                } catch StickerPackError.incorrectImageSize(let imageDimensions) {
+                    result(FlutterError(code: "INCORRECT_IMAGE_SIZE", message: "\(filename): \(imageDimensions) is not compliant with sticker images dimensions, \(Limits.ImageDimensions).", details: nil))
+                    return
+                } catch StickerPackError.animatedImagesNotSupported {
+                    result(FlutterError(code: "ANIMATED_IMAGES_NOT_SUPPORTED", message: "\(filename) is an animated image. Animated images are not supported.", details: nil))
+                    return
+                } catch StickerPackError.tooManyEmojis {
+                    result(FlutterError(code: "TOO_MANY_EMOJIS", message: "\(filename) has too many emojis. \(Limits.MaxEmojisCount) is the maximum number.", details: nil))
+                    return
+                } catch {
+                    result(FlutterError(code: "GENERAL_ERROR", message: error.localizedDescription, details: nil))
+                    return
+                }
+                
             }
         }
             
