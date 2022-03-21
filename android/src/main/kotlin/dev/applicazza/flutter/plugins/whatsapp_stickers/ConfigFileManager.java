@@ -100,8 +100,8 @@ public class ConfigFileManager {
                             System.out.println("Sticker Pack imageDataVersion " + spl.get(0).imageDataVersion);
 
                     }
-				}
-				
+                }
+                
                 for(Sticker stickerInProvider: spl.get(0).getStickers()){
                     System.out.println("Filename "+stickerInProvider.imageFileName);
 
@@ -112,6 +112,16 @@ public class ConfigFileManager {
 			}
         }
 		if(!existe){
+            //Order StickerPack, put bogus files at the end of the Array
+            List<Sticker> stickers = stickerPack.getStickers();
+            for(int i = 0; i<stickers.size();i++){
+                Sticker sticker = stickers.get(i);
+                if(!sticker.imageFileName.contains("bogus")){
+                    stickers.remove(i);
+                    stickers.add(0,sticker);
+                }
+            }            
+            //stickerPack.setStickers(stickers);
 			stickerPacks.add(stickerPack);
 		}
         
